@@ -1,21 +1,41 @@
-import socket,ssl
+import socket
+import ssl
 
-def run(target):
-    host=target.strip().replace("https://","").replace("http://","").split("/")[0]
-    ctx=ssl.create_default_context()
+
+def run(target, **kwargs):
+    target = target.strip().lower()
+
+    if not target:
+        raise ValueError("Domain cannot be empty")
+
     try:
-        with socket.create_connection((host,443),timeout=10) as sock:
-            with ctx.wrap_socket(sock,server_hostname=host) as s:
-                cert=s.getpeercert()
+        context = ssl.create_default_context()
+
+        with socket.create_connection((target, 443), timeout=10) as sock:
+            with context.wrap_socket(sock, server_hostname=target) as ssock:
+                cert = ssock.getpeercert()
+
                 return {
-                    "module":"ssl","target":host,
-                    "version":s.version(),
-                    "cipher":s.cipher(),
-                    "subject":cert.get("subject"),
-                    "issuer":cert.get("issuer"),
-                    "valid_from":cert.get("notBefore"),
-                    "valid_until":cert.get("notAfter"),
-                    "san":[x[1] for x in cert.get("subjectAltName",[])]
+                    "success": True,
+                    "module": "ssl",
+                    "target": target,
+                    "tls_version": ssock.version(),
+                    "cipher": ssock.cipher()[0],
+                    "issuer": dict(x[0] for x in cert.get("issuer", [])),
+                    "subject": dict(x[0] for x in cert.get("subject", [])),
+                    "valid_from": cert.get("notBefore"),
+                    "valid_until": cert.get("notAfter"),
+                    "san": [
+                        value
+                        for kind, value in cert.get("subjectAltName", [])
+                        if kind == "DNS"
+                    ],
                 }
+
     except Exception as e:
-        return {"module":"ssl","target":host,"error":str(e)}
+        return {
+            "success": False,
+            "module": "ssl",
+            "target": target,
+            "error": str(e),
+        }

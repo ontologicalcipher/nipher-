@@ -12,6 +12,7 @@ class Engine:
         "email": "nipher.modules.email",
         "web": "nipher.modules.web",
         "network": "nipher.modules.network",
+        "network_intel": "nipher.modules.network_intel",
         "username": "nipher.modules.username",
         "metadata": "nipher.modules.metadata",
         "youtube": "nipher.modules.youtube",

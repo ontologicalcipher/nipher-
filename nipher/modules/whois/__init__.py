@@ -1,16 +1,51 @@
-import whois
+import socket
+from datetime import datetime, timezone
 
-def run(target):
-    domain=target.strip().replace("https://","").replace("http://","").split("/")[0]
+
+def run(target, **kwargs):
+    target = target.strip().lower()
+
+    if not target:
+        raise ValueError("Domain cannot be empty")
+
     try:
-        w=whois.whois(domain)
+        import whois
+    except ImportError:
         return {
-            "module":"whois","target":domain,
-            "domain_name":str(w.domain_name),
-            "registrar":str(w.registrar),
-            "creation_date":str(w.creation_date),
-            "expiration_date":str(w.expiration_date),
-            "name_servers":[str(x) for x in (w.name_servers or [])]
+            "success": False,
+            "module": "whois",
+            "target": target,
+            "error": "python-whois is not installed"
         }
+
+    try:
+        data = whois.whois(target)
+
+        def clean(value):
+            if isinstance(value, (list, tuple)):
+                return [str(v) for v in value]
+            if value is None:
+                return None
+            return str(value)
+
+        return {
+            "success": True,
+            "module": "whois",
+            "target": target,
+            "domain_name": clean(data.domain_name),
+            "registrar": clean(data.registrar),
+            "creation_date": clean(data.creation_date),
+            "expiration_date": clean(data.expiration_date),
+            "updated_date": clean(data.updated_date),
+            "name_servers": clean(data.name_servers),
+            "status": clean(data.status),
+            "emails": clean(data.emails),
+        }
+
     except Exception as e:
-        return {"module":"whois","target":domain,"error":str(e)}
+        return {
+            "success": False,
+            "module": "whois",
+            "target": target,
+            "error": str(e)
+        }
