@@ -535,6 +535,26 @@ pre.show{
 button,.btn{transition:transform .15s ease,opacity .15s ease}
 button:active,.btn:active{transform:scale(.97)}
 .result-card{animation:fadeUp .45s ease both}
+
+body{
+background:
+radial-gradient(circle at 20% 20%,rgba(0,180,255,.12),transparent 30%),
+radial-gradient(circle at 80% 70%,rgba(70,80,255,.10),transparent 35%),
+linear-gradient(135deg,#03060b,#08111c 50%,#020409);
+background-attachment:fixed;
+}
+body::before{
+content:"";
+position:fixed;
+inset:0;
+pointer-events:none;
+opacity:.18;
+background-image:
+linear-gradient(rgba(80,180,255,.08) 1px,transparent 1px),
+linear-gradient(90deg,rgba(80,180,255,.08) 1px,transparent 1px);
+background-size:60px 60px;
+mask-image:linear-gradient(to bottom,black,transparent);
+}
 </style>
 </head>
 
