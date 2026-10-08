@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 import importlib
+from nipher.stars import all_stars, search as search_stars
 
 app = Flask(__name__)
 
@@ -31,6 +32,15 @@ MODULES = [
 ]
 
 MODULE_MAP = {x[0]: x[1] for x in MODULES}
+
+@app.route("/stars")
+def stars_page():
+    return render_template("stars.html", stars=all_stars())
+
+@app.get("/api/stars")
+def stars_api():
+    q=request.args.get("q","").strip()
+    return jsonify(search_stars(q) if q else all_stars())
 
 @app.route("/")
 def index():

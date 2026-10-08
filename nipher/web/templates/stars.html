@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NIPHER STAR MAP</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020308;color:#fff;font-family:Inter,system-ui,sans-serif}
+#space{position:fixed;inset:0}
+.hud{position:fixed;z-index:5;inset:0;pointer-events:none}
+.top{padding:22px 24px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-weight:800;letter-spacing:7px;font-size:15px}
+.status{font-size:11px;letter-spacing:2px;opacity:.65}
+.panel{position:absolute;left:22px;top:92px;width:290px;padding:18px;border:1px solid #202532;background:rgba(5,7,14,.82);backdrop-filter:blur(14px);pointer-events:auto;box-sizing:border-box}
+.panel h1{font-size:14px;letter-spacing:3px;margin:0 0 15px}
+input{width:100%;box-sizing:border-box;background:#090c14;border:1px solid #293044;color:white;padding:11px;border-radius:6px;outline:none}
+.results{margin-top:10px;max-height:300px;overflow:auto}
+.star{padding:10px;border-bottom:1px solid #1b202c;cursor:pointer}
+.star:hover{background:#101522}
+.star b{display:block;font-size:13px}.star span{font-size:10px;opacity:.55}
+.info{position:absolute;right:22px;top:92px;width:260px;padding:18px;border:1px solid #202532;background:rgba(5,7,14,.82);backdrop-filter:blur(14px);display:none}
+.info h2{margin:0 0 5px;font-size:21px}.info p{margin:7px 0;font-size:12px;opacity:.7}
+.info strong{opacity:1}
+.bottom{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:2px;opacity:.45}
+</style>
+</head>
+<body>
+<div id="space"></div>
+<div class="hud">
+  <div class="top"><div class="logo">NIPHER</div><div class="status">STAR MAP // REAL CATALOG PROTOTYPE</div></div>
+  <div class="panel">
+    <h1>STAR CATALOG</h1>
+    <input id="search" placeholder="Search Sirius, Vega, HIP...">
+    <div id="results"></div>
+  </div>
+  <div id="info" class="info"></div>
+  <div class="bottom">DRAG TO ROTATE · SCROLL TO FLY</div>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+
+const stars = {{ stars|tojson }};
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020308);
+
+const camera = new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.01,20000);
+camera.position.set(0,0,30);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+document.getElementById('space').appendChild(renderer.domElement);
+
+const group = new THREE.Group();
+scene.add(group);
+
+const positions=[], colors=[], sizes=[], objects=[];
+const colorFor = m => m < 0 ? [1,.82,.65] : m < .5 ? [.75,.85,1] : m < 1.5 ? [1,.95,.8] : [1,.65,.4];
+
+for(const s of stars){
+  const ra=s.ra_deg*Math.PI/180;
+  const dec=s.dec_deg*Math.PI/180;
+  const d=Math.max(.8,Math.min(s.distance_ly/8,500));
+  const x=d*Math.cos(dec)*Math.cos(ra);
+  const y=d*Math.sin(dec);
+  const z=-d*Math.cos(dec)*Math.sin(ra);
+  positions.push(x,y,z);
+  const c=colorFor(s.magnitude); colors.push(...c);
+  sizes.push(Math.max(2.5,8-s.magnitude));
+  objects.push({x,y,z,s});
+}
+
+const geo=new THREE.BufferGeometry();
+geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+const mat=new THREE.PointsMaterial({size:.55,vertexColors:true,sizeAttenuation:true});
+const points=new THREE.Points(geo,mat);
+group.add(points);
+
+let down=false,px=0,py=0;
+renderer.domElement.addEventListener('pointerdown',e=>{down=true;px=e.clientX;py=e.clientY});
+window.addEventListener('pointerup',()=>down=false);
+window.addEventListener('pointermove',e=>{
+ if(!down)return;
+ group.rotation.y+=(e.clientX-px)*.003;
+ group.rotation.x+=(e.clientY-py)*.003;
+ px=e.clientX;py=e.clientY;
+});
+renderer.domElement.addEventListener('wheel',e=>{
+ camera.position.z=Math.max(2,Math.min(3000,camera.position.z+e.deltaY*.08));
+},{passive:true});
+
+function selectStar(s){
+ const i=stars.indexOf(s), o=objects[i];
+ const info=document.getElementById('info');
+ info.style.display='block';
+ info.innerHTML=`<h2>${s.name}</h2><p>${s.catalog_id}</p>
+ <p>Distance<br><strong>${s.distance_ly} light-years</strong></p>
+ <p>RA<br><strong>${s.ra_deg.toFixed(4)}°</strong></p>
+ <p>DEC<br><strong>${s.dec_deg.toFixed(4)}°</strong></p>
+ <p>Visual magnitude<br><strong>${s.visual_magnitude}</strong></p>`;
+ group.rotation.set(0,0,0);
+ camera.position.set(o.x*.35,o.y*.35,o.z*.35+4);
+}
+
+function renderResults(list){
+ document.getElementById('results').innerHTML=list.map((s,i)=>
+ `<div class="star" data-i="${i}"><b>${s.name}</b><span>${s.catalog_id} · ${s.distance_ly} ly · mag ${s.visual_magnitude}</span></div>`
+ ).join('');
+ document.querySelectorAll('.star').forEach(el=>el.onclick=()=>selectStar(list[+el.dataset.i]));
+}
+renderResults(stars);
+
+document.getElementById('search').addEventListener('input',e=>{
+ const q=e.target.value.toLowerCase();
+ renderResults(stars.filter(s=>s.name.toLowerCase().includes(q)||s.catalog_id.toLowerCase().includes(q)));
+});
+
+function animate(){requestAnimationFrame(animate);points.rotation.y+=.00008;renderer.render(scene,camera)}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body>
+</html>
