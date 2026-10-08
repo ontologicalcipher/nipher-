@@ -236,3 +236,142 @@ def run(target, **kwargs):
         },
         "position": _position(item),
     }
+
+
+def _observer_ecef(lat_deg, lon_deg, height_km=0.0):
+    lat = radians(lat_deg)
+    lon = radians(lon_deg)
+
+    sin_lat = sin(lat)
+    cos_lat = cos(lat)
+
+    n = WGS84_A / sqrt(1 - WGS84_E2 * sin_lat * sin_lat)
+
+    return (
+        (n + height_km) * cos_lat * cos(lon),
+        (n + height_km) * cos_lat * sin(lon),
+        (n * (1 - WGS84_E2) + height_km) * sin_lat,
+    )
+
+
+def _look_angles(position_ecef, lat_deg, lon_deg, height_km=0.0):
+    ox, oy, oz = _observer_ecef(lat_deg, lon_deg, height_km)
+    sx, sy, sz = position_ecef
+
+    dx = sx - ox
+    dy = sy - oy
+    dz = sz - oz
+
+    lat = radians(lat_deg)
+    lon = radians(lon_deg)
+
+    east = -sin(lon) * dx + cos(lon) * dy
+    north = (
+        -sin(lat) * cos(lon) * dx
+        - sin(lat) * sin(lon) * dy
+        + cos(lat) * dz
+    )
+    up = (
+        cos(lat) * cos(lon) * dx
+        + cos(lat) * sin(lon) * dy
+        + sin(lat) * dz
+    )
+
+    distance = sqrt(east * east + north * north + up * up)
+    elevation = degrees(asin(up / distance))
+    azimuth = (degrees(atan2(east, north)) + 360) % 360
+
+    return azimuth, elevation, distance
+
+
+def _position_at(sat, dt):
+    jd = _julian_date(dt)
+    jd_int = int(jd)
+    jd_fraction = jd - jd_int
+
+    error, position, velocity = sat.sgp4(
+        jd_int,
+        jd_fraction,
+    )
+
+    if error != 0:
+        return None
+
+    theta = _gmst(jd)
+
+    x, y, z = position
+
+    x_ecef = cos(theta) * x + sin(theta) * y
+    y_ecef = -sin(theta) * x + cos(theta) * y
+
+    return (x_ecef, y_ecef, z)
+
+
+def passes(item, latitude, longitude, hours=24, min_elevation=10):
+    sat = _build_satellite(item)
+
+    start = datetime.now(timezone.utc)
+    end = start.timestamp() + hours * 3600
+
+    step_seconds = 30
+    events = []
+    active = False
+    current = None
+    peak = None
+
+    timestamp = start.timestamp()
+
+    while timestamp <= end:
+        dt = datetime.fromtimestamp(timestamp, timezone.utc)
+        position = _position_at(sat, dt)
+
+        if position is not None:
+            azimuth, elevation, distance = _look_angles(
+                position,
+                latitude,
+                longitude,
+            )
+
+            visible = elevation >= min_elevation
+
+            if visible and not active:
+                active = True
+                current = {
+                    "rise_utc": dt.isoformat(),
+                    "rise_azimuth_deg": round(azimuth, 2),
+                    "max_elevation_deg": elevation,
+                    "max_elevation_utc": dt.isoformat(),
+                    "set_utc": None,
+                    "set_azimuth_deg": None,
+                    "duration_minutes": None,
+                }
+                peak = (elevation, dt, azimuth)
+
+            elif visible and active:
+                if peak is None or elevation > peak[0]:
+                    peak = (elevation, dt, azimuth)
+
+            elif not visible and active:
+                current["set_utc"] = dt.isoformat()
+                current["set_azimuth_deg"] = round(azimuth, 2)
+
+                if peak:
+                    current["max_elevation_deg"] = round(peak[0], 2)
+                    current["max_elevation_utc"] = peak[1].isoformat()
+
+                rise = datetime.fromisoformat(
+                    current["rise_utc"]
+                )
+                current["duration_minutes"] = round(
+                    (dt - rise).total_seconds() / 60,
+                    1,
+                )
+
+                events.append(current)
+                active = False
+                current = None
+                peak = None
+
+        timestamp += step_seconds
+
+    return events

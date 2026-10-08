@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NIPHER — OSINT Intelligence Platform</title>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+  --bg:#070707;
+  --panel:#0e0e0e;
+  --panel2:#131313;
+  --line:#252525;
+  --text:#f4f4f4;
+  --muted:#858585;
+  --soft:#bdbdbd;
+  --green:#76e39b;
+  --blue:#72b7ff;
+  --yellow:#e6c76a;
+  --red:#ff7777;
+}
+
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 50% -10%,#1a1a1a 0,#070707 42%);
+  color:var(--text);
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  min-height:100vh;
+}
+
+header{
+  position:sticky;
+  top:0;
+  z-index:20;
+  backdrop-filter:blur(18px);
+  background:rgba(7,7,7,.86);
+  border-bottom:1px solid var(--line);
+}
+
+.header-inner{
+  max-width:1180px;
+  margin:auto;
+  padding:18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.logo{
+  font-size:25px;
+  font-weight:900;
+  letter-spacing:4px;
+}
+
+.tag{
+  color:var(--muted);
+  font-size:10px;
+  letter-spacing:1.8px;
+  margin-top:3px;
+}
+
+.status-pill{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid var(--line);
+  background:#101010;
+  padding:8px 11px;
+  border-radius:999px;
+  font-size:11px;
+  color:var(--muted);
+}
+
+.dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 10px var(--green);
+}
+
+main{
+  max-width:1180px;
+  margin:auto;
+  padding:22px 16px 60px;
+}
+
+.hero{
+  margin-bottom:25px;
+}
+
+.hero h1{
+  margin:0;
+  font-size:30px;
+  letter-spacing:-1px;
+}
+
+.hero p{
+  color:var(--muted);
+  margin:7px 0 0;
+  font-size:13px;
+}
+
+.section-title{
+  color:#777;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:1.7px;
+  text-transform:uppercase;
+  margin:25px 0 10px;
+}
+
+.modules{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:9px;
+}
+
+.module{
+  text-align:left;
+  border:1px solid var(--line);
+  background:linear-gradient(145deg,#151515,#0d0d0d);
+  color:var(--text);
+  padding:14px;
+  border-radius:15px;
+  cursor:pointer;
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    background .18s ease;
+}
+
+.module:hover{
+  transform:translateY(-2px);
+  border-color:#444;
+}
+
+.module.active{
+  border-color:#777;
+  background:#ededed;
+  color:#080808;
+}
+
+.module-name{
+  font-weight:800;
+  font-size:14px;
+}
+
+.module-desc{
+  color:#777;
+  font-size:10px;
+  margin-top:4px;
+}
+
+.module.active .module-desc{
+  color:#555;
+}
+
+.panel{
+  margin-top:18px;
+  border:1px solid var(--line);
+  background:rgba(15,15,15,.94);
+  border-radius:20px;
+  padding:17px;
+  box-shadow:0 15px 50px rgba(0,0,0,.22);
+}
+
+.target-label{
+  font-size:10px;
+  color:#777;
+  letter-spacing:1.5px;
+  font-weight:800;
+}
+
+.example{
+  font-size:11px;
+  color:#666;
+  margin:6px 0 12px;
+}
+
+.input-row{
+  display:flex;
+  gap:9px;
+}
+
+input{
+  min-width:0;
+  flex:1;
+  border:1px solid #303030;
+  background:#080808;
+  color:#fff;
+  border-radius:12px;
+  padding:14px;
+  outline:none;
+  font-size:14px;
+  transition:border-color .2s;
+}
+
+input:focus{
+  border-color:#777;
+}
+
+.run{
+  border:0;
+  border-radius:12px;
+  background:#eee;
+  color:#080808;
+  font-weight:900;
+  padding:0 22px;
+  cursor:pointer;
+  transition:transform .15s;
+}
+
+.run:active{
+  transform:scale(.96);
+}
+
+.run:disabled{
+  opacity:.5;
+}
+
+.status{
+  min-height:18px;
+  color:#777;
+  font-size:11px;
+  margin-top:12px;
+}
+
+/* loading */
+
+.scan{
+  display:none;
+  margin-top:15px;
+  border:1px solid #252525;
+  border-radius:14px;
+  padding:15px;
+  background:#0a0a0a;
+}
+
+.scan.show{
+  display:block;
+  animation:fadeUp .3s ease;
+}
+
+.scan-line{
+  height:2px;
+  width:100%;
+  overflow:hidden;
+  background:#202020;
+  position:relative;
+}
+
+.scan-line:after{
+  content:"";
+  position:absolute;
+  width:30%;
+  height:100%;
+  background:#aaa;
+  box-shadow:0 0 18px #aaa;
+  animation:scan 1.3s linear infinite;
+}
+
+.scan-text{
+  color:#777;
+  font-size:11px;
+  margin-top:10px;
+}
+
+/* results */
+
+.results{
+  margin-top:18px;
+}
+
+.results.hidden{
+  display:none;
+}
+
+.result-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.result-title{
+  font-size:16px;
+  font-weight:850;
+}
+
+.result-sub{
+  font-size:10px;
+  color:#666;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+
+.card{
+  border:1px solid var(--line);
+  background:#101010;
+  border-radius:16px;
+  padding:15px;
+  animation:fadeUp .35s ease both;
+}
+
+.card.full{
+  grid-column:1/-1;
+}
+
+.card-title{
+  font-size:10px;
+  color:#777;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  font-weight:800;
+  margin-bottom:13px;
+}
+
+.identity-name{
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:-.5px;
+}
+
+.identity-meta{
+  color:#777;
+  font-size:11px;
+  margin-top:5px;
+}
+
+.metric-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+}
+
+.metric{
+  background:#080808;
+  border:1px solid #202020;
+  border-radius:11px;
+  padding:11px;
+}
+
+.metric-label{
+  color:#666;
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+
+.metric-value{
+  font-size:14px;
+  font-weight:750;
+  margin-top:4px;
+  word-break:break-word;
+}
+
+.provider{
+  position:relative;
+}
+
+.provider-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.provider-name{
+  font-weight:850;
+}
+
+.badge{
+  font-size:9px;
+  border-radius:999px;
+  padding:5px 8px;
+  border:1px solid #294c35;
+  color:var(--green);
+  background:#0d1911;
+}
+
+.badge.optional{
+  color:var(--yellow);
+  border-color:#4b4327;
+  background:#171408;
+}
+
+.provider-count{
+  color:#777;
+  font-size:11px;
+  margin-top:9px;
+}
+
+.satellite-item{
+  margin-top:9px;
+  border:1px solid #202020;
+  background:#090909;
+  border-radius:11px;
+  padding:11px;
+}
+
+.sat-name{
+  font-size:13px;
+  font-weight:800;
+}
+
+.sat-info{
+  color:#777;
+  font-size:10px;
+  margin-top:4px;
+}
+
+.raw-wrap{
+  margin-top:12px;
+}
+
+.raw-toggle{
+  width:100%;
+  border:1px solid #252525;
+  background:#0c0c0c;
+  color:#888;
+  border-radius:10px;
+  padding:10px;
+  cursor:pointer;
+  text-align:left;
+  font-size:11px;
+}
+
+pre{
+  display:none;
+  margin:8px 0 0;
+  max-height:400px;
+  overflow:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
+  background:#050505;
+  border:1px solid #202020;
+  border-radius:11px;
+  padding:13px;
+  color:#aaa;
+  font-size:10px;
+}
+
+pre.show{
+  display:block;
+}
+
+/* empty */
+
+.empty{
+  border:1px dashed #292929;
+  border-radius:15px;
+  padding:30px;
+  text-align:center;
+  color:#666;
+  font-size:12px;
+}
+
+@keyframes scan{
+  from{left:-30%}
+  to{left:100%}
+}
+
+@keyframes fadeUp{
+  from{
+    opacity:0;
+    transform:translateY(8px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+@media(min-width:700px){
+  .modules{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
+
+@media(min-width:950px){
+  .modules{
+    grid-template-columns:repeat(4,1fr);
+  }
+
+  .cards{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
+
+@media(max-width:520px){
+  .input-row{
+    flex-direction:column;
+  }
+
+  .run{
+    height:48px;
+  }
+
+  .cards{
+    grid-template-columns:1fr;
+  }
+
+  .card.full{
+    grid-column:auto;
+  }
+
+  .header-inner{
+    padding:15px;
+  }
+
+  .hero h1{
+    font-size:25px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="logo">NIPHER</div>
+      <div class="tag">OSINT · GEOINT · SATELLITE INTELLIGENCE</div>
+    </div>
+
+    <div class="status-pill">
+      <span class="dot"></span>
+      SYSTEM READY
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <div class="hero">
+    <h1>Intelligence Console</h1>
+    <p>Investigate public information through unified NIPHER modules.</p>
+  </div>
+
+  <div class="section-title">Modules</div>
+
+  <div class="modules">
+    {% for id,name,desc in modules %}
+    <button class="module"
+            data-module="{{id}}"
+            onclick="selectModule(this)">
+      <div class="module-name">{{name}}</div>
+      <div class="module-desc">{{desc}}</div>
+    </button>
+    {% endfor %}
+  </div>
+
+  <section class="panel">
+
+    <div class="target-label" id="label">TARGET</div>
+
+    <div class="example" id="example">
+      Select an intelligence module.
+    </div>
+
+    <div class="input-row">
+      <input
+        id="target"
+        placeholder="Select a module..."
+        autocomplete="off"
+      >
+
+      <button class="run" id="runBtn" onclick="runModule()">
+        ANALYZE
+      </button>
+    </div>
+
+    <div class="status" id="status">
+      NIPHER ready.
+    </div>
+
+    <div class="scan" id="scan">
+      <div class="scan-line"></div>
+      <div class="scan-text" id="scanText">
+        Querying intelligence sources...
+      </div>
+    </div>
+
+    <div class="results hidden" id="results">
+
+      <div class="result-head">
+        <div>
+          <div class="result-title" id="resultTitle">
+            Intelligence Result
+          </div>
+          <div class="result-sub" id="resultSub"></div>
+        </div>
+      </div>
+
+      <div class="cards" id="cards"></div>
+
+      <div class="raw-wrap">
+        <button class="raw-toggle" onclick="toggleRaw()">
+          Show raw response
+        </button>
+        <pre id="raw"></pre>
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+
+let current = "";
+
+const examples = {
+  domain:"example.com",
+  dns:"example.com",
+  whois:"example.com",
+  ssl:"example.com",
+  subdomain:"example.com",
+  ip:"8.8.8.8",
+  country:"India",
+  pincode:"110001",
+  ifsc:"SBIN0000001",
+  number:"+91XXXXXXXXXX",
+  email:"user@example.com",
+  username:"example_username",
+  github:"python requests",
+  youtube_api:"YouTube URL",
+  metadata:"/sdcard/Download/photo.jpg",
+  hash:"/sdcard/Download/file.zip",
+  url:"https://example.com",
+  geoint:"22.7196, 75.8577",
+  satellite:"ISS or 25544",
+  satellite_intel:"ISS or 25544",
+  pan:"ABCDE1234F",
+  gst:"GSTIN",
+  report:"example.com"
+};
+
+function selectModule(el){
+
+  current = el.dataset.module;
+
+  document
+    .querySelectorAll(".module")
+    .forEach(x => x.classList.remove("active"));
+
+  el.classList.add("active");
+
+  document.getElementById("example").textContent =
+    "Example: " + (examples[current] || "enter target");
+
+  document.getElementById("target").placeholder =
+    examples[current] || "Enter target...";
+
+  document.getElementById("target").value = "";
+
+  document.getElementById("status").textContent =
+    current.replaceAll("_"," ").toUpperCase() + " selected.";
+
+  document.getElementById("results").classList.add("hidden");
+
+  document.getElementById("scan").classList.remove("show");
+
+  document.getElementById("target").focus();
+}
+
+async function runModule(){
+
+  const target =
+    document.getElementById("target").value.trim();
+
+  if(!current){
+    document.getElementById("status").textContent =
+      "Select a module first.";
+    return;
+  }
+
+  if(!target){
+    document.getElementById("status").textContent =
+      "Enter a target.";
+    return;
+  }
+
+  const btn = document.getElementById("runBtn");
+
+  btn.disabled = true;
+  btn.textContent = "SCANNING";
+
+  document.getElementById("results").classList.add("hidden");
+
+  document.getElementById("scan").classList.add("show");
+
+  document.getElementById("status").textContent =
+    "Collecting public intelligence...";
+
+  const scanMessages = [
+    "Querying intelligence sources...",
+    "Normalizing returned data...",
+    "Cross-checking provider results...",
+    "Building intelligence view..."
+  ];
+
+  let i = 0;
+
+  const interval = setInterval(() => {
+    document.getElementById("scanText").textContent =
+      scanMessages[i++ % scanMessages.length];
+  },700);
+
+  try{
+
+    const response = await fetch("/api/run",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        module:current,
+        target:target
+      })
+    });
+
+    const data = await response.json();
+
+    clearInterval(interval);
+
+    document.getElementById("scan").classList.remove("show");
+
+    renderResult(data);
+
+    document.getElementById("status").textContent =
+      response.ok
+      ? "Analysis completed."
+      : "Analysis returned an error.";
+
+  }catch(error){
+
+    clearInterval(interval);
+
+    document.getElementById("scan").classList.remove("show");
+
+    document.getElementById("status").textContent =
+      "Connection error.";
+
+    renderResult({
+      error:String(error)
+    });
+
+  }finally{
+
+    btn.disabled = false;
+    btn.textContent = "ANALYZE";
+  }
+}
+
+function esc(value){
+
+  if(value === null || value === undefined)
+    return "—";
+
+  if(typeof value === "object")
+    return JSON.stringify(value);
+
+  return String(value)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;");
+}
+
+function metric(label,value){
+
+  return `
+    <div class="metric">
+      <div class="metric-label">${esc(label)}</div>
+      <div class="metric-value">${esc(value)}</div>
+    </div>
+  `;
+}
+
+function providerCard(provider){
+
+  const source = provider.source || "Unknown";
+
+  if(provider.status === "not_configured"){
+
+    return `
+      <div class="card provider">
+        <div class="provider-top">
+          <div class="provider-name">${esc(source)}</div>
+          <span class="badge optional">OPTIONAL</span>
+        </div>
+        <div class="provider-count">
+          ${esc(provider.message || "Provider not configured.")}
+        </div>
+      </div>
+    `;
+  }
+
+  if(provider.error){
+
+    return `
+      <div class="card provider">
+        <div class="provider-top">
+          <div class="provider-name">${esc(source)}</div>
+          <span class="badge"
+                style="color:var(--red);border-color:#512828;background:#190d0d">
+            ERROR
+          </span>
+        </div>
+        <div class="provider-count">
+          ${esc(provider.error)}
+        </div>
+      </div>
+    `;
+  }
+
+  let items = provider.satellites || [];
+
+  return `
+    <div class="card provider">
+
+      <div class="provider-top">
+        <div class="provider-name">${esc(source)}</div>
+        <span class="badge">CONNECTED</span>
+      </div>
+
+      <div class="provider-count">
+        ${items.length} satellite result${items.length === 1 ? "" : "s"}
+      </div>
+
+      ${
+        items.slice(0,5).map(x => `
+          <div class="satellite-item">
+
+            <div class="sat-name">
+              ${esc(x.name || "Unknown satellite")}
+            </div>
+
+            <div class="sat-info">
+              NORAD ${esc(x.norad_id || "—")}
+              ${x.epoch ? " · " + esc(x.epoch) : ""}
+            </div>
+
+          </div>
+        `).join("")
+      }
+
+      ${
+        provider.tle
+        ? `
+          <div class="satellite-item">
+            <div class="sat-name">TLE available</div>
+            <div class="sat-info">
+              Orbital element data returned by provider.
+            </div>
+          </div>
+        `
+        : ""
+      }
+
+    </div>
+  `;
+}
+
+function renderSatellite(data){
+
+  const providers = data.providers || [];
+
+  let firstSatellite = null;
+
+  for(const p of providers){
+
+    if(p.satellites && p.satellites.length){
+      firstSatellite = p.satellites[0];
+      break;
+    }
+  }
+
+  let html = "";
+
+  if(firstSatellite){
+
+    html += `
+      <div class="card full">
+
+        <div class="card-title">Satellite Identity</div>
+
+        <div class="identity-name">
+          ${esc(firstSatellite.name || "Satellite")}
+        </div>
+
+        <div class="identity-meta">
+          NORAD ${esc(firstSatellite.norad_id || data.target)}
+        </div>
+
+        <div class="metric-grid" style="margin-top:15px">
+
+          ${metric(
+            "NORAD ID",
+            firstSatellite.norad_id || data.target
+          )}
+
+          ${metric(
+            "Object ID",
+            firstSatellite.international_designator || "—"
+          )}
+
+          ${metric(
+            "Epoch",
+            firstSatellite.epoch || "—"
+          )}
+
+          ${metric(
+            "Mean Motion",
+            firstSatellite.mean_motion || "—"
+          )}
+
+          ${metric(
+            "Inclination",
+            firstSatellite.inclination_deg
+              ? firstSatellite.inclination_deg + "°"
+              : "—"
+          )}
+
+          ${metric(
+            "Eccentricity",
+            firstSatellite.eccentricity || "—"
+          )}
+
+        </div>
+
+      </div>
+    `;
+  }
+
+  html += providers.map(providerCard).join("");
+
+  return html || `
+    <div class="card full">
+      <div class="empty">
+        No structured satellite data returned.
+      </div>
+    </div>
+  `;
+}
+
+function renderResult(data){
+
+  const results = document.getElementById("results");
+  const cards = document.getElementById("cards");
+
+  document.getElementById("resultTitle").textContent =
+    current.replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase());
+
+  document.getElementById("resultSub").textContent =
+    data.target ? "Target: " + data.target : "";
+
+  if(current === "satellite_intel"){
+
+    cards.innerHTML = renderSatellite(data);
+
+  }else{
+
+    cards.innerHTML = `
+      <div class="card full">
+
+        <div class="card-title">Result</div>
+
+        <div class="metric-grid">
+          ${
+            Object.entries(data)
+              .filter(([k]) => k !== "module")
+              .slice(0,20)
+              .map(([k,v]) => metric(k.replaceAll("_"," "),v))
+              .join("")
+          }
+        </div>
+
+      </div>
+    `;
+  }
+
+  document.getElementById("raw").textContent =
+    JSON.stringify(data,null,2);
+
+  results.classList.remove("hidden");
+}
+
+function toggleRaw(){
+
+  document
+    .getElementById("raw")
+    .classList.toggle("show");
+}
+
+document
+  .getElementById("target")
+  .addEventListener("keydown",e=>{
+    if(e.key === "Enter")
+      runModule();
+  });
+
+</script>
+
+</body>
+</html>

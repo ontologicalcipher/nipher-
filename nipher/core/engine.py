@@ -3,6 +3,13 @@ from importlib import import_module
 class Engine:
     MODULES = {
         "domain": "nipher.modules.domain",
+        "pan": "nipher.modules.pan",
+        "number": "nipher.modules.number",
+        "dns": "nipher.modules.dns",
+        "whois": "nipher.modules.whois",
+        "ssl": "nipher.modules.ssl",
+        "subdomain": "nipher.modules.subdomain",
+        "email": "nipher.modules.email",
         "web": "nipher.modules.web",
         "network": "nipher.modules.network",
         "username": "nipher.modules.username",
